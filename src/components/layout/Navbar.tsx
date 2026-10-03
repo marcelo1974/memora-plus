@@ -73,7 +73,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               imageSize={48}
               preserveImage={!settings.customLogoUrl}
               showSlogan={false}
-              customLogoUrl={settings.customLogoUrl || "/branding/memora-logo-marcelo.jpg"}
+              customLogoUrl={settings.customLogoUrl || "/branding/memora-header-logo.png"}
               customBrandName={settings.customBrandName}
             />
           </button>
