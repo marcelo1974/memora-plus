@@ -116,16 +116,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-6 pb-14 max-w-7xl mx-auto">
       {/* 1. Header Banner MEMORA+ com Identidade Visual */}
-      <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-indigo-950 via-slate-900 to-[#0F172A] border border-slate-800 p-6 sm:p-8 text-white shadow-xl">
-        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-6">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-900/90 border-2 border-amber-500/50 shadow-2xl p-0.5 shrink-0 flex items-center justify-center ring-4 ring-amber-500/15">
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-indigo-950 via-slate-900 to-[#0F172A] border border-slate-800 p-6 sm:p-8 lg:px-12 text-white shadow-xl">
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-8">
+          <div className="order-2 self-end md:self-auto w-36 h-36 lg:w-44 lg:h-44 rounded-2xl overflow-hidden bg-slate-900/90 border-2 border-amber-500/50 shadow-2xl p-0.5 shrink-0 flex items-center justify-center ring-4 ring-amber-500/15">
             <img
               src="/branding/memora-header-logo.png"
               alt="Logo MEMORA+"
               className="w-full h-full object-contain rounded-lg"
             />
           </div>
-          <div className="max-w-2xl flex-1">
+          <div className="order-1 min-w-0 max-w-2xl flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
                 <Sparkles className="w-3.5 h-3.5 text-teal-400" />
@@ -141,7 +141,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1 flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1 flex flex-wrap items-center gap-2">
               <span>MEMORA+</span>
               <span className="font-light text-slate-300 text-lg sm:text-xl">| Bom estudo!</span>
             </h1>
