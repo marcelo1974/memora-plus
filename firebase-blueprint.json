@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Information about a registered user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "User ID matching Firebase Auth UID" },
+        "email": { "type": "string", "description": "Email address" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "photoURL": { "type": "string", "description": "Avatar photo URL" },
+        "createdAt": { "type": "string", "description": "Account creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Last update ISO timestamp" }
+      },
+      "required": ["id", "email"]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "A study question with alternatives and SM-2 spaced repetition metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique question identifier" },
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "question": { "type": "string", "description": "Question statement" },
+        "options": { "type": "array", "description": "List of 4 alternative choices" },
+        "correctOption": { "type": "number", "description": "Index of correct alternative (0-3)" },
+        "explanation": { "type": "string", "description": "Pedagogical commentary" },
+        "subject": { "type": "string", "description": "Academic subject / discipline" },
+        "topic": { "type": "string", "description": "Specific topic" },
+        "difficulty": { "type": "string", "description": "Difficulty level: facil, medio, dificil" },
+        "timeLimitSeconds": { "type": "number", "description": "Time limit in seconds" },
+        "repetitions": { "type": "number", "description": "Consecutive correct SM-2 reviews" },
+        "interval": { "type": "number", "description": "SM-2 review interval in days" },
+        "easeFactor": { "type": "number", "description": "SM-2 ease factor" },
+        "nextReviewDate": { "type": "string", "description": "ISO timestamp for next scheduled review" },
+        "lastReviewedDate": { "type": "string", "description": "ISO timestamp of last review" },
+        "isFavorite": { "type": "boolean", "description": "Bookmarked favorite flag" },
+        "errorCount": { "type": "number", "description": "Lifetime wrong answers" },
+        "createdAt": { "type": "string", "description": "Creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Update ISO timestamp" }
+      },
+      "required": ["id", "userId", "question", "options", "correctOption", "subject"]
+    },
+    "StudyHistory": {
+      "title": "StudyHistory",
+      "description": "Log of question resolution for analytics and spaced repetition",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique history log identifier" },
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "questionId": { "type": "string", "description": "Target question ID" },
+        "selectedOption": { "type": "number", "description": "Option chosen by the user" },
+        "isCorrect": { "type": "boolean", "description": "Whether answer was correct" },
+        "timeSpentSeconds": { "type": "number", "description": "Time spent answering in seconds" },
+        "mode": { "type": "string", "description": "Study mode (treino, desafio, simulado, revisao)" },
+        "timestamp": { "type": "string", "description": "Resolution ISO timestamp" }
+      },
+      "required": ["id", "userId", "questionId", "isCorrect", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profiles"
+    },
+    "/users/{userId}/questions/{questionId}": {
+      "schema": "Question",
+      "description": "User specific question bank with SM-2 state"
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": "StudyHistory",
+      "description": "User answer history logs"
+    }
+  }
+}

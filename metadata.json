@@ -1,0 +1,6 @@
+{
+  "name": "MEMORA+",
+  "description": "Plataforma inteligente de estudos, questões e memorização com repetição espaçada, simulados e análise de retenção.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
