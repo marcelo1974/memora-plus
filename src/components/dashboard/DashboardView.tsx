@@ -118,11 +118,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* 1. Header Banner MEMORA+ com Identidade Visual */}
       <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-indigo-950 via-slate-900 to-[#0F172A] border border-slate-800 p-6 sm:p-8 text-white shadow-xl">
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-6">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-slate-900/90 border-2 border-amber-500/50 shadow-2xl p-0.5 shrink-0 flex items-center justify-center ring-4 ring-amber-500/15">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-900/90 border-2 border-amber-500/50 shadow-2xl p-0.5 shrink-0 flex items-center justify-center ring-4 ring-amber-500/15">
             <img
-              src="/logo-round.png"
-              alt="Medalhão MEMORA+"
-              className="w-full h-full object-cover rounded-full"
+              src="/branding/memora-header-logo.png"
+              alt="Logo MEMORA+"
+              className="w-full h-full object-contain rounded-lg"
             />
           </div>
           <div className="max-w-2xl flex-1">
