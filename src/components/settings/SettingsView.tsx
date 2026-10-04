@@ -129,13 +129,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
     setIsSyncing(true);
     try {
-      await StorageService.flushWrites();
+      if (!navigator.onLine) throw new Error("Conecte-se à internet para sincronizar.");
+      const userId = currentUser.uid;
+      const [cloudQuestions, cloudHistory] = await Promise.all([
+        FirebaseService.loadUserQuestions(userId), FirebaseService.loadUserHistory(userId),
+      ]);
+      if (FirebaseService.currentUserId() !== userId) throw new Error("A conta mudou. Tente novamente.");
+      await StorageService.mergeCloudStudyData(cloudQuestions, cloudHistory);
+      onRefreshAllData();
       const allQs = StorageService.getQuestions();
-      await FirebaseService.syncQuestionsBatch(currentUser.uid, allQs);
+      const cloudIds = new Set(cloudQuestions.map((q) => q.id));
+      await FirebaseService.syncQuestionsBatch(userId, allQs.filter((q) => !cloudIds.has(q.id)));
+      await FirebaseService.syncHistoryBatch(userId, StorageService.getAnswerHistory());
       await FirebaseService.saveUserSettings(currentUser.uid, settings);
-      showFeedback(`${allQs.length} questões sincronizadas com sucesso no Cloud Firestore!`);
+      showFeedback(`Sincronização concluída: ${allQs.length} questões e ${StorageService.getAnswerHistory().length} respostas. Repita no outro dispositivo.`);
     } catch (err) {
-      showFeedback("Erro ao sincronizar com a nuvem.", "error");
+      showFeedback(err instanceof Error ? `Sincronização não concluída: ${err.message}` : "Sincronização não concluída. Tente novamente com internet.", "error");
     } finally {
       setIsSyncing(false);
     }
@@ -423,7 +432,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed">
-          Com o Firebase integrado, suas questões e configurações podem ser sincronizadas no Cloud Firestore de forma segura e privada para o seu usuário.
+          Com o Firebase integrado, suas questões, respostas e configurações podem ser sincronizadas no Cloud Firestore de forma segura e privada para o seu usuário.
         </p>
 
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
