@@ -258,7 +258,7 @@ export default function App() {
       FirebaseService.saveHistoryItem(currentUser.uid, {
         ...record,
         id: record.id || `h_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      });
+      }).catch((error) => console.error("Resposta preservada localmente; sincronização pendente:", error));
       if (updatedQuestion) {
         FirebaseService.saveUserQuestion(currentUser.uid, updatedQuestion);
       }
@@ -276,7 +276,7 @@ export default function App() {
         FirebaseService.saveHistoryItem(currentUser.uid, {
           ...rec,
           id: rec.id || `h_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        });
+        }).catch((error) => console.error("Resposta preservada localmente; sincronização pendente:", error));
       });
     }
   };
