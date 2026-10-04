@@ -1,3 +1,4 @@
+import { mergeHistory } from './historyMerge';
 import { assertStoredRecords, assertOptionalObject, assertSnapshotData, StorageSnapshot } from './storageSnapshot';
 import { INITIAL_QUESTIONS } from "../data/initialQuestions";
 import {
@@ -736,6 +737,20 @@ export class StorageServiceManager {
   // =========================================================================
   // BACKUP & RESTORE (Utiliza SEMPRE os Dados Autoritativos)
   // =========================================================================
+
+  async mergeCloudStudyData(questions: Question[], history: AnswerHistoryRecord[]): Promise<void> {
+    await this.flushWrites();
+    const byId = new Map(this.getQuestions().map((q) => [q.id, q]));
+    for (const question of questions) if (!byId.has(question.id)) byId.set(question.id, normalizeQuestion(question));
+    const mergedHistory = mergeHistory(this.getAnswerHistory(), history);
+    const settings = this.getSettings();
+    const snapshot: StorageSnapshot = {
+      questions: [...byId.values()], history: mergedHistory, sessions: this.getStudySessions(), settings,
+      dailyGoal: LearningEngine.calculateGoalsProgress(mergedHistory, settings, new Date()),
+    };
+    assertSnapshotData(snapshot);
+    await this.replaceSnapshot(snapshot);
+  }
 
   exportFullBackupJSON(): string {
     const data = {

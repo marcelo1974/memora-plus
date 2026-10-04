@@ -18,7 +18,7 @@ import {
   setDoc,
   getDocFromServer,
   collection,
-  getDocs,
+  getDocsFromServer,
   writeBatch,
 } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
@@ -64,6 +64,7 @@ export interface AuthUserProfile {
 }
 
 export const FirebaseService = {
+  currentUserId(): string | null { return auth.currentUser?.uid ?? null; },
   // 1. Email & Password Registration
   async registerWithEmail(email: string, pass: string, displayName?: string): Promise<FirebaseUser> {
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
@@ -122,7 +123,7 @@ export const FirebaseService = {
   async loadUserQuestions(userId: string): Promise<Question[]> {
     try {
       const qCol = collection(db, "users", userId, "questions");
-      const snap = await getDocs(qCol);
+      const snap = await getDocsFromServer(qCol);
       const list: Question[] = [];
       snap.forEach((d) => {
         list.push(d.data() as Question);
@@ -172,7 +173,7 @@ export const FirebaseService = {
   async loadUserHistory(userId: string): Promise<AnswerHistoryRecord[]> {
     try {
       const hCol = collection(db, "users", userId, "history");
-      const snap = await getDocs(hCol);
+      const snap = await getDocsFromServer(hCol);
       const list: AnswerHistoryRecord[] = [];
       snap.forEach((d) => {
         list.push(d.data() as AnswerHistoryRecord);
@@ -180,7 +181,17 @@ export const FirebaseService = {
       return list;
     } catch (err) {
       console.error("Error loading user history from Firestore:", err);
-      return [];
+      throw err;
+    }
+  },
+
+  async syncHistoryBatch(userId: string, history: AnswerHistoryRecord[]): Promise<void> {
+    for (let i = 0; i < history.length; i += 450) {
+      const batch = writeBatch(db);
+      for (const item of history.slice(i, i + 450)) {
+        batch.set(doc(db, "users", userId, "history", item.id), { ...item, userId }, { merge: true });
+      }
+      await batch.commit();
     }
   },
 
@@ -191,6 +202,7 @@ export const FirebaseService = {
       await setDoc(hDoc, { ...item, userId }, { merge: true });
     } catch (err) {
       console.error("Error saving history log to Firestore:", err);
+      throw err;
     }
   },
 
@@ -201,6 +213,7 @@ export const FirebaseService = {
       await setDoc(uDoc, { settings, updatedAt: new Date().toISOString() }, { merge: true });
     } catch (err) {
       console.error("Error saving settings to Firestore:", err);
+      throw err;
     }
   },
 
