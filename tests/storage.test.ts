@@ -326,3 +326,14 @@ test('bootstrap rejeita dados corrompidos mesmo com marcador COMPLETED', async (
   assert.equal(service.isIndexedDbAuthoritative(), false);
   assert.equal((await indexedDbStorage.getAllQuestions()).find((q) => q.id === data.questions[0].id)?.correctOption, 'Z');
 });
+
+test('cloud union commits history once and preserves local questions and sessions', async () => {
+  await indexedDbStorage.commitSnapshot(snapshot(), true, metadata);
+  const service = new StorageServiceManager(); await service.initializeStorage();
+  await service.mergeCloudStudyData([], [historyRecord('remote')]);
+  await service.mergeCloudStudyData([], [historyRecord('remote')]);
+  assert.equal(service.getAnswerHistory().length, 2);
+  assert.equal((await indexedDbStorage.getAllHistory()).length, 2);
+  assert.equal(service.getQuestions().length, snapshot().questions.length);
+  assert.equal(service.getStudySessions().length, 1);
+});
