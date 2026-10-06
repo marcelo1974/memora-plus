@@ -1,3 +1,4 @@
+import { getCloudOwner } from './services/cloudAccountGuard';
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   AnswerHistoryRecord,
@@ -43,6 +44,8 @@ export default function App() {
   // Auth state
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const [accountGate, setAccountGate] = useState<"checking" | "allowed" | "blocked">("checking");
 
   // Application State
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -103,47 +106,25 @@ export default function App() {
     return () => unsubStorage();
   }, [loadData]);
 
-  // Listen to Firebase Auth state
+  // Login never merges or uploads the shared local bank automatically.
+  // Existing unowned data requires explicit confirmation in Settings.
   useEffect(() => {
-    const unsubscribe = FirebaseService.onAuthChange(async (user) => {
+    return FirebaseService.onAuthChange((user) => {
+      setAccountGate("checking");
       setCurrentUser(user);
-      if (user) {
-        try {
-          const initialization = await StorageService.initializeStorage();
-          if (!initialization.success) return;
-          // Cloud sync on user sign in
-          const cloudQuestions = await FirebaseService.loadUserQuestions(user.uid);
-          if (cloudQuestions && cloudQuestions.length > 0) {
-            // Keep the authoritative local bank; cloud data augments missing IDs.
-            const local = StorageService.getQuestions();
-            const byId = new Map(local.map((q) => [q.id, q]));
-            for (const question of cloudQuestions) if (!byId.has(question.id)) byId.set(question.id, question);
-            const merged = [...byId.values()];
-            StorageService.saveQuestions(merged);
-            await StorageService.flushWrites();
-            setQuestions(merged);
-          } else {
-            // First time login with existing questions: seed user's cloud bank
-            const localQs = StorageService.getQuestions();
-            if (localQs.length > 0) {
-              await FirebaseService.syncQuestionsBatch(user.uid, localQs);
-            }
-          }
-
-          // Load cloud settings if present
-          const cloudSettings = await FirebaseService.loadUserSettings(user.uid);
-          if (cloudSettings) {
-            const updated = StorageService.updateUserSettings(cloudSettings);
-            setSettings(updated);
-          }
-        } catch (err) {
-          console.error("Auto cloud sync error:", err);
-        }
-      }
+      setAuthReady(true);
     });
-
-    return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAccountGate("checking");
+    if (!authReady) return;
+    void getCloudOwner().then((owner) => {
+      if (!cancelled) setAccountGate(currentUser && owner && owner !== currentUser.uid ? "blocked" : "allowed");
+    }).catch(() => { if (!cancelled) setAccountGate("blocked"); });
+    return () => { cancelled = true; };
+  }, [currentUser, authReady]);
 
   // Apply Theme & Font Size to HTML root
   useEffect(() => {
@@ -195,7 +176,7 @@ export default function App() {
     const created = StorageService.addQuestion(q);
     setQuestions((prev) => [created, ...prev]);
     if (currentUser) {
-      FirebaseService.saveUserQuestion(currentUser.uid, created);
+      void FirebaseService.saveUserQuestion(currentUser.uid, created).catch((error) => console.error("Questão preservada localmente; sincronização pendente:", error));
     }
   };
 
@@ -207,7 +188,7 @@ export default function App() {
         prev.map((item) => (item.id === id ? updated : item))
       );
       if (currentUser) {
-        FirebaseService.saveUserQuestion(currentUser.uid, updated);
+        void FirebaseService.saveUserQuestion(currentUser.uid, updated).catch((error) => console.error("Questão preservada localmente; sincronização pendente:", error));
       }
     }
   };
@@ -237,7 +218,7 @@ export default function App() {
         prev.map((item) => (item.id === id ? updated : item))
       );
       if (currentUser) {
-        FirebaseService.saveUserQuestion(currentUser.uid, updated);
+        void FirebaseService.saveUserQuestion(currentUser.uid, updated).catch((error) => console.error("Questão preservada localmente; sincronização pendente:", error));
       }
     }
   };
@@ -260,7 +241,7 @@ export default function App() {
         id: record.id || `h_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       }).catch((error) => console.error("Resposta preservada localmente; sincronização pendente:", error));
       if (updatedQuestion) {
-        FirebaseService.saveUserQuestion(currentUser.uid, updatedQuestion);
+        void FirebaseService.saveUserQuestion(currentUser.uid, updatedQuestion).catch((error) => console.error("Questão preservada localmente; sincronização pendente:", error));
       }
     }
   };
@@ -326,6 +307,18 @@ export default function App() {
         initializationReady={storageReady}
       />
     );
+  }
+
+  if (accountGate !== "allowed") {
+    return <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-lg p-6 rounded-2xl bg-white dark:bg-slate-900 space-y-4">
+        <h1 className="text-xl font-bold">{accountGate === "checking" ? "Verificando conta…" : "Conta incompatível com os dados locais"}</h1>
+        {accountGate === "blocked" && <>
+          <p>Estes dados pertencem à conta vinculada neste navegador, ou a identificação não pôde ser validada. Nenhum dado foi apagado. Saia e entre na conta original; para outra pessoa, use um perfil separado do navegador.</p>
+          {currentUser && <button className="px-4 py-2 rounded bg-teal-600 text-white" onClick={handleLogout}>Sair desta conta</button>}
+        </>}
+      </div>
+    </div>;
   }
 
   return (

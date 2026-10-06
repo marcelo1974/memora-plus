@@ -92,11 +92,12 @@ export class StorageServiceManager {
     return task;
   }
 
-  private async replaceSnapshot(snapshot: StorageSnapshot): Promise<void> {
+  private async replaceSnapshot(snapshot: StorageSnapshot, guard?: () => Promise<void>): Promise<void> {
     this.assertWritable();
     this.replacingSnapshot = true;
     try {
       await this.enqueuePersistence(async () => {
+        if (guard) await guard();
         await indexedDbStorage.commitSnapshot(snapshot, true);
         this.hydrate(snapshot);
         this.persistenceError = null;
@@ -738,7 +739,7 @@ export class StorageServiceManager {
   // BACKUP & RESTORE (Utiliza SEMPRE os Dados Autoritativos)
   // =========================================================================
 
-  async mergeCloudStudyData(questions: Question[], history: AnswerHistoryRecord[]): Promise<void> {
+  async mergeCloudStudyData(questions: Question[], history: AnswerHistoryRecord[], guard?: () => Promise<void>): Promise<void> {
     await this.flushWrites();
     const byId = new Map(this.getQuestions().map((q) => [q.id, q]));
     for (const question of questions) if (!byId.has(question.id)) byId.set(question.id, normalizeQuestion(question));
@@ -749,7 +750,7 @@ export class StorageServiceManager {
       dailyGoal: LearningEngine.calculateGoalsProgress(mergedHistory, settings, new Date()),
     };
     assertSnapshotData(snapshot);
-    await this.replaceSnapshot(snapshot);
+    await this.replaceSnapshot(snapshot, guard);
   }
 
   exportFullBackupJSON(): string {

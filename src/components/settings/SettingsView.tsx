@@ -1,3 +1,4 @@
+import { assertCloudAccount, claimCloudOwner, getCloudOwner } from '../../services/cloudAccountGuard';
 import React, { useState, useEffect } from "react";
 import { UserSettings, StorageHealth, IntegrityCheckReport } from "../../types";
 import { StorageService } from "../../services/storageService";
@@ -131,17 +132,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     try {
       if (!navigator.onLine) throw new Error("Conecte-se à internet para sincronizar.");
       const userId = currentUser.uid;
+      await StorageService.flushWrites();
+      const owner = await getCloudOwner();
+      if (owner === null) {
+        const confirmed = window.confirm(`Vincular os dados deste navegador à conta ${currentUser.email || userId}? Confira se estes dados são seus. Depois, outra conta não poderá sincronizar este banco local. Nenhum dado será apagado.`);
+        if (!confirmed) return;
+        if (FirebaseService.currentUserId() !== userId) throw new Error("A conta mudou. Tente novamente.");
+        await claimCloudOwner(userId);
+      }
+      await assertCloudAccount(userId, FirebaseService.currentUserId);
       const [cloudQuestions, cloudHistory] = await Promise.all([
         FirebaseService.loadUserQuestions(userId), FirebaseService.loadUserHistory(userId),
       ]);
       if (FirebaseService.currentUserId() !== userId) throw new Error("A conta mudou. Tente novamente.");
-      await StorageService.mergeCloudStudyData(cloudQuestions, cloudHistory);
+      await StorageService.mergeCloudStudyData(cloudQuestions, cloudHistory, () => assertCloudAccount(userId, FirebaseService.currentUserId));
       onRefreshAllData();
       const allQs = StorageService.getQuestions();
       const cloudIds = new Set(cloudQuestions.map((q) => q.id));
       await FirebaseService.syncQuestionsBatch(userId, allQs.filter((q) => !cloudIds.has(q.id)));
       await FirebaseService.syncHistoryBatch(userId, StorageService.getAnswerHistory());
-      await FirebaseService.saveUserSettings(currentUser.uid, settings);
+      await FirebaseService.saveUserSettings(userId, settings);
+      await assertCloudAccount(userId, FirebaseService.currentUserId);
       showFeedback(`Sincronização concluída: ${allQs.length} questões e ${StorageService.getAnswerHistory().length} respostas. Repita no outro dispositivo.`);
     } catch (err) {
       showFeedback(err instanceof Error ? `Sincronização não concluída: ${err.message}` : "Sincronização não concluída. Tente novamente com internet.", "error");
@@ -422,7 +433,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {currentUser ? (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-300/60 dark:border-emerald-500/40">
               <CloudCheck className="w-3.5 h-3.5" />
-              Sincronizado na Nuvem
+              Conta conectada
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-300/60 dark:border-amber-500/40">
@@ -432,7 +443,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed">
-          Com o Firebase integrado, suas questões, respostas e configurações podem ser sincronizadas no Cloud Firestore de forma segura e privada para o seu usuário.
+          Sincronize manualmente com a mesma conta nos seus aparelhos. Na primeira sincronização, confirme a conta que ficará vinculada aos dados deste navegador. Sair da conta mantém seus dados locais; use um perfil de navegador separado para outra pessoa.
         </p>
 
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

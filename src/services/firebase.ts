@@ -1,3 +1,4 @@
+import { assertCloudAccount } from './cloudAccountGuard';
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
@@ -121,6 +122,7 @@ export const FirebaseService = {
 
   // 7. Load Questions for User from Firestore
   async loadUserQuestions(userId: string): Promise<Question[]> {
+    await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
     try {
       const qCol = collection(db, "users", userId, "questions");
       const snap = await getDocsFromServer(qCol);
@@ -137,6 +139,7 @@ export const FirebaseService = {
 
   // 8. Save single question to Firestore
   async saveUserQuestion(userId: string, question: Question): Promise<void> {
+    await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
     try {
       const qDoc = doc(db, "users", userId, "questions", question.id);
       await setDoc(qDoc, {
@@ -146,11 +149,13 @@ export const FirebaseService = {
       }, { merge: true });
     } catch (err) {
       console.error("Error saving user question to Firestore:", err);
+      throw err;
     }
   },
 
   // 9. Batch sync multiple questions to Firestore
   async syncQuestionsBatch(userId: string, questions: Question[]): Promise<void> {
+    await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
     try {
       // Chunk into batches of 450 (Firestore limit is 500)
       const chunkSize = 450;
@@ -161,6 +166,7 @@ export const FirebaseService = {
           const qDoc = doc(db, "users", userId, "questions", q.id);
           batch.set(qDoc, { ...q, userId, updatedAt: new Date().toISOString() }, { merge: true });
         });
+        await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
         await batch.commit();
       }
     } catch (err) {
@@ -171,6 +177,7 @@ export const FirebaseService = {
 
   // 10. Load Study History for User from Firestore
   async loadUserHistory(userId: string): Promise<AnswerHistoryRecord[]> {
+    await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
     try {
       const hCol = collection(db, "users", userId, "history");
       const snap = await getDocsFromServer(hCol);
@@ -186,17 +193,20 @@ export const FirebaseService = {
   },
 
   async syncHistoryBatch(userId: string, history: AnswerHistoryRecord[]): Promise<void> {
+    await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
     for (let i = 0; i < history.length; i += 450) {
       const batch = writeBatch(db);
       for (const item of history.slice(i, i + 450)) {
         batch.set(doc(db, "users", userId, "history", item.id), { ...item, userId }, { merge: true });
       }
-      await batch.commit();
+      await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
+        await batch.commit();
     }
   },
 
   // 11. Record Study History Log in Firestore
   async saveHistoryItem(userId: string, item: AnswerHistoryRecord): Promise<void> {
+    await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
     try {
       const hDoc = doc(db, "users", userId, "history", item.id);
       await setDoc(hDoc, { ...item, userId }, { merge: true });
@@ -208,6 +218,7 @@ export const FirebaseService = {
 
   // 12. Save User Settings to Firestore
   async saveUserSettings(userId: string, settings: UserSettings): Promise<void> {
+    await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
     try {
       const uDoc = doc(db, "users", userId);
       await setDoc(uDoc, { settings, updatedAt: new Date().toISOString() }, { merge: true });
@@ -219,6 +230,7 @@ export const FirebaseService = {
 
   // 13. Load User Settings from Firestore
   async loadUserSettings(userId: string): Promise<UserSettings | null> {
+    await assertCloudAccount(userId, () => auth.currentUser?.uid ?? null);
     try {
       const uDoc = doc(db, "users", userId);
       const snap = await getDoc(uDoc);

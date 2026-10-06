@@ -337,3 +337,22 @@ test('cloud union commits history once and preserves local questions and session
   assert.equal(service.getQuestions().length, snapshot().questions.length);
   assert.equal(service.getStudySessions().length, 1);
 });
+
+test('account authorization failure prevents cloud snapshot commit', async () => {
+  await indexedDbStorage.commitSnapshot(snapshot(), true, metadata);
+  const service = new StorageServiceManager(); await service.initializeStorage();
+  await assert.rejects(service.mergeCloudStudyData([], [historyRecord('remote')], async () => { throw new Error('Conta mudou'); }), /Conta mudou/);
+  assert.equal(service.getAnswerHistory().length, 1);
+  assert.equal((await indexedDbStorage.getAllHistory()).length, 1);
+});
+
+test('ownership marker survives restore and reset', async () => {
+  await indexedDbStorage.commitSnapshot(snapshot(), true, metadata);
+  await indexedDbStorage.putMetadata('cloud_account_owner_v1', 'A');
+  const service = new StorageServiceManager(); await service.initializeStorage();
+  const result = await service.importFullBackupJSON(service.exportFullBackupJSON());
+  assert.equal(result.success, true);
+  assert.equal(await indexedDbStorage.getMetadata('cloud_account_owner_v1'), 'A');
+  await service.resetDatabaseToDefaults();
+  assert.equal(await indexedDbStorage.getMetadata('cloud_account_owner_v1'), 'A');
+});
