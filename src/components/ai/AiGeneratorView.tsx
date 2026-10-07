@@ -1,3 +1,5 @@
+import { auth } from "../../services/firebase";
+import { assertCloudAccount } from "../../services/cloudAccountGuard";
 import React, { useState } from "react";
 import { OptionLetter, Question, QuestionDifficulty } from "../../types";
 import {
@@ -38,6 +40,15 @@ export const AiGeneratorView: React.FC<AiGeneratorViewProps> = ({
   const [generatedQuestions, setGeneratedQuestions] = useState<Partial<Question>[]>([]);
   const [isSuccessAdded, setIsSuccessAdded] = useState(false);
 
+  const authenticatedHeaders = async () => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Entre com sua conta para utilizar a geração por IA.");
+    await assertCloudAccount(user.uid, () => auth.currentUser?.uid ?? null);
+    const token = await user.getIdToken();
+    if (auth.currentUser?.uid !== user.uid) throw new Error("A conta mudou. Tente novamente.");
+    return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  };
+
   // Handle Generate by Topic
   const handleGenerateByTopic = async () => {
     setIsLoading(true);
@@ -46,7 +57,7 @@ export const AiGeneratorView: React.FC<AiGeneratorViewProps> = ({
     try {
       const res = await fetch("/api/ai/generate-questions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authenticatedHeaders(),
         body: JSON.stringify({
           subject,
           topic,
@@ -83,7 +94,7 @@ export const AiGeneratorView: React.FC<AiGeneratorViewProps> = ({
     try {
       const res = await fetch("/api/ai/text-to-questions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authenticatedHeaders(),
         body: JSON.stringify({
           text: sourceText,
           count,

@@ -243,17 +243,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
       onUpdateSettings({ customLogoUrl: dataUrl });
-      showFeedback("Arte original do cliente aplicada com sucesso em 100% do sistema!");
+      showFeedback("Logo personalizado aplicado às suas configurações.");
 
-      try {
-        await fetch("/api/upload-client-logo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageBase64: dataUrl }),
-        });
-      } catch (err) {
-        console.error("Erro ao sincronizar logo no servidor:", err);
-      }
+
     };
     reader.readAsDataURL(file);
   };

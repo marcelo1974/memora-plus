@@ -1,7 +1,8 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import sharp from "sharp";
+import firebaseConfig from "./firebase-applet-config.json";
+import { createAiSecurity, verifyFirebaseToken } from "./server/apiSecurity";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
@@ -11,7 +12,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(express.json({ limit: "10mb" }));
+app.post("/api/upload-client-logo", (_req, res) => {
+  res.status(403).json({ error: "O envio de logotipo global está desativado. A marca oficial é atualizada pelo projeto." });
+});
+app.use(express.json({ limit: "64kb" }));
+app.use("/api/ai", createAiSecurity(token => verifyFirebaseToken(token, firebaseConfig.apiKey, firebaseConfig.projectId)));
 
 // Lazy Gemini client helper
 let geminiClient: GoogleGenAI | null = null;
@@ -24,6 +29,7 @@ function getGeminiClient(): GoogleGenAI | null {
     geminiClient = new GoogleGenAI({
       apiKey,
       httpOptions: {
+        timeout: 30000,
         headers: {
           "User-Agent": "aistudio-build",
         },
@@ -111,8 +117,9 @@ Para cada questão:
     console.error("Erro ao gerar questões com Gemini:", err);
     return res.status(500).json({
       error: "Falha ao gerar questões com Inteligência Artificial.",
-      details: err?.message || String(err),
     });
+  } finally {
+    res.locals.releaseAiSlot?.();
   }
 });
 
@@ -177,64 +184,9 @@ ${text.slice(0, 8000)}
     console.error("Erro no text-to-questions:", err);
     return res.status(500).json({
       error: "Falha na conversão de texto em questões.",
-      details: err?.message || String(err),
     });
-  }
-});
-
-// Upload and Process Client's Exact Original Logo
-app.post("/api/upload-client-logo", async (req, res) => {
-  try {
-    const { imageBase64 } = req.body;
-    if (!imageBase64) {
-      return res.status(400).json({ error: "Nenhuma imagem fornecida." });
-    }
-
-    const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    const buffer = matches ? Buffer.from(matches[2], "base64") : Buffer.from(imageBase64, "base64");
-
-    const publicDir = path.join(process.cwd(), "public");
-
-    // 1. Save original client file unaltered
-    fs.writeFileSync(path.join(publicDir, "logo-client.png"), buffer);
-    fs.writeFileSync(path.join(publicDir, "logo-official.png"), buffer);
-
-    // 2. Generate circular / medallion version
-    const circleSvg = Buffer.from(
-      '<svg width="512" height="512"><circle cx="256" cy="256" r="256" fill="#fff" /></svg>'
-    );
-    await sharp(buffer)
-      .resize(512, 512, { fit: "cover" })
-      .composite([{ input: circleSvg, blend: "dest-in" }])
-      .png()
-      .toFile(path.join(publicDir, "logo-round.png"));
-
-    // 3. PWA Icons
-    await sharp(buffer).resize(192, 192, { fit: "cover" }).png().toFile(path.join(publicDir, "pwa-192x192.png"));
-    await sharp(buffer).resize(192, 192, { fit: "cover" }).png().toFile(path.join(publicDir, "icon-192.png"));
-    await sharp(buffer).resize(512, 512, { fit: "cover" }).png().toFile(path.join(publicDir, "pwa-512x512.png"));
-    await sharp(buffer).resize(512, 512, { fit: "cover" }).png().toFile(path.join(publicDir, "icon-512.png"));
-    await sharp(buffer).resize(180, 180, { fit: "cover" }).png().toFile(path.join(publicDir, "apple-touch-icon.png"));
-
-    const paddedSize = Math.round(512 * 0.76);
-    const resizedForMask = await sharp(buffer).resize(paddedSize, paddedSize, { fit: "cover" }).toBuffer();
-    await sharp({
-      create: {
-        width: 512,
-        height: 512,
-        channels: 4,
-        background: { r: 11, g: 15, b: 25, alpha: 1 },
-      },
-    })
-      .composite([{ input: resizedForMask, gravity: "center" }])
-      .png()
-      .toFile(path.join(publicDir, "pwa-maskable-512x512.png"));
-
-    console.log("Original client logo processed and saved into public!");
-    return res.json({ success: true, url: "/logo-client.png?t=" + Date.now() });
-  } catch (err: any) {
-    console.error("Erro ao processar logotipo original do cliente:", err);
-    return res.status(500).json({ error: "Falha ao salvar e processar o logo do cliente.", details: err?.message });
+  } finally {
+    res.locals.releaseAiSlot?.();
   }
 });
 

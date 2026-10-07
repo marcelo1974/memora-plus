@@ -33,8 +33,17 @@ try {
   const response = await fetch(base + '/api/ai/generate-questions', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ subject: 'Matemática' }),
   });
-  assert.equal(response.status, 503);
-  console.log('PASS IA sem chave: 503');
+  assert.equal(response.status, 401);
+  console.log('PASS IA sem login: 401');
+  const textResponse = await fetch(base + '/api/ai/text-to-questions', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: 'Um texto de estudo suficientemente longo.' }),
+  });
+  assert.equal(textResponse.status, 401);
+  const logoResponse = await fetch(base + '/api/upload-client-logo', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageBase64: 'data:image/png;base64,aGVsbG8=' }),
+  });
+  assert.equal(logoResponse.status, 403);
+  console.log('PASS texto sem login: 401; upload global: 403');
 } finally {
   clearTimeout(startupTimer);
   child.kill();
