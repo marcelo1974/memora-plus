@@ -1,6 +1,6 @@
 import { auth } from "../../services/firebase";
 import { assertCloudAccount } from "../../services/cloudAccountGuard";
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { OptionLetter, Question, QuestionDifficulty } from "../../types";
 import {
   Sparkles,
@@ -14,6 +14,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 
+const PdfStudyView = lazy(() => import("./PdfStudyView"));
+
 interface AiGeneratorViewProps {
   onBulkAddQuestions: (questions: Partial<Question>[]) => number;
   onFinish: () => void;
@@ -23,7 +25,7 @@ export const AiGeneratorView: React.FC<AiGeneratorViewProps> = ({
   onBulkAddQuestions,
   onFinish,
 }) => {
-  const [tab, setTab] = useState<"TOPIC" | "TEXT">("TOPIC");
+  const [tab, setTab] = useState<"TOPIC" | "TEXT" | "PDF">("TOPIC");
 
   // Topic mode inputs
   const [subject, setSubject] = useState("Direito Constitucional");
@@ -143,7 +145,7 @@ export const AiGeneratorView: React.FC<AiGeneratorViewProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4">
+      <div className="flex flex-wrap border-b border-slate-200 dark:border-slate-800 gap-4">
         <button
           onClick={() => setTab("TOPIC")}
           className={`pb-3 text-xs font-bold transition-colors border-b-2 flex items-center gap-2 ${
@@ -167,8 +169,11 @@ export const AiGeneratorView: React.FC<AiGeneratorViewProps> = ({
           <FileText className="w-4 h-4" />
           <span>Converter Texto / Resumo em Questões</span>
         </button>
+        <button onClick={() => setTab("PDF")} className={`pb-3 text-xs font-bold border-b-2 ${tab === "PDF" ? "border-teal-500 text-teal-600" : "border-transparent text-slate-500"}`}>PDF e resumos</button>
       </div>
 
+      {tab === "PDF" && <Suspense fallback={<p>Carregando leitor de PDF…</p>}><PdfStudyView onBulkAddQuestions={onBulkAddQuestions} /></Suspense>}
+      {tab !== "PDF" && <>
       {/* Error Message */}
       {errorMessage && (
         <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2.5">
@@ -374,6 +379,7 @@ export const AiGeneratorView: React.FC<AiGeneratorViewProps> = ({
           </div>
         </div>
       )}
+      </>}
     </div>
   );
 };

@@ -47,7 +47,7 @@ export function createAiSecurity(verify: (token: string) => Promise<string>, now
     const shortFields = ['subject', 'topic'];
     if (!Number.isInteger(count) || count < 1 || count > 10 || shortFields.some(key => body[key] !== undefined && (typeof body[key] !== 'string' || body[key].length > 200)) ||
       (body.difficulty !== undefined && !['Fácil', 'Médio', 'Difícil'].includes(body.difficulty)) ||
-      (req.path.endsWith('text-to-questions') && (typeof body.text !== 'string' || body.text.trim().length < 20 || body.text.length > 8000))) {
+      ((req.path.endsWith('text-to-questions') || req.path.endsWith('summarize-text')) && (typeof body.text !== 'string' || body.text.trim().length < 20 || body.text.length > 8000))) {
       res.status(400).json({ error: 'Use de 1 a 10 questões, matéria e assunto com até 200 caracteres e texto entre 20 e 8.000 caracteres.' }); return;
     }
     const hour = Math.floor(now() / 3600000);

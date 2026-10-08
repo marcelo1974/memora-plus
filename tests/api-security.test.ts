@@ -36,6 +36,7 @@ test('HTTP authentication, validation, hourly limits, concurrency and recovery',
     res.json({ success: true });
   });
   app.post('/api/ai/text-to-questions', (_req, res) => res.json({ success: true }));
+  app.post('/api/ai/summarize-text', (_req, res) => res.json({ success: true }));
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const address = server.address();
@@ -50,6 +51,8 @@ test('HTTP authentication, validation, hourly limits, concurrency and recovery',
     for (const count of [0, 11, 1.5, '5']) assert.equal((await post('u', { count })).status, 400);
     assert.equal((await post('u', { subject: 'a'.repeat(201) })).status, 400);
     assert.equal((await post('u', { text: 'a'.repeat(8001) }, 'text-to-questions')).status, 400);
+    assert.equal((await post('u', {}, 'summarize-text')).status, 400);
+    assert.equal((await post('u', { text: 'a'.repeat(8001) }, 'summarize-text')).status, 400);
     assert.equal((await post('u', { text: 'a'.repeat(20) }, 'text-to-questions')).status, 200);
     for (let i = 0; i < 9; i++) assert.equal((await post('u')).status, 200);
     assert.equal((await post('u')).status, 429);

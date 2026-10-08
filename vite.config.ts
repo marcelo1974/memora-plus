@@ -53,7 +53,7 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,jpg,jpeg,mp4,svg,woff,woff2}'],
+          globPatterns: ['**/*.{js,mjs,css,html,ico,png,jpg,jpeg,mp4,svg,woff,woff2,ttf,pfb}'],
           navigateFallback: '/index.html',
           skipWaiting: true,
           clientsClaim: true,

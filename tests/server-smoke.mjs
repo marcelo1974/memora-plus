@@ -44,6 +44,9 @@ try {
   });
   assert.equal(logoResponse.status, 403);
   console.log('PASS texto sem login: 401; upload global: 403');
+  const summaryResponse = await fetch(base + '/api/ai/summarize-text', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: 'Um texto de estudo suficientemente longo.' }) });
+  assert.equal(summaryResponse.status, 401);
+  console.log('PASS resumo sem login: 401');
 } finally {
   clearTimeout(startupTimer);
   child.kill();

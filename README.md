@@ -50,3 +50,10 @@ A geração/compressão de backups grandes (4D) não foi implementada.
 ## Abertura
 
 Animação personalizada de 5 segundos, silenciosa, com barra abaixo e fallback para logo estática. A entrada aguarda dados validados. O vídeo é incluído no cache para funcionar offline após preparação inicial com rede. O original de 10 segundos permanece no pacote, fora do projeto.
+
+
+## PDF e resumos (2026-10-08)
+
+A aba **IA Memora+ → PDF e resumos** lê PDFs com texto selecionável no dispositivo, permite selecionar páginas e gerar questões/resumos por blocos. PDF até 20 MB/500 páginas; até 10 páginas e 18.000 caracteres por leitura. Geração requer conta vinculada e internet. Resumos são temporários: baixe o arquivo Markdown antes de sair da tela. OCR ainda não está implementado.
+
+O build e o comando de desenvolvimento executam `scripts/copy-pdf-fonts.mjs`; envie esse arquivo junto com os dois manifestos npm. Leia `CHECKPOINT_MEMORA_PDF_RESUMOS_2026-10-08.md` para evidências, limitações e pendências. Fase 4D permanece pausada.
