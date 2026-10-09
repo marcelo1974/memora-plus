@@ -24,3 +24,10 @@ test('network diagnostics retain only allowlisted labels and numeric upstream st
   assert.ok(!JSON.stringify(aiFailureDiagnostics(err)).includes('secret-key'));
   assert.ok(!JSON.stringify(aiFailureDiagnostics({name: 'secret-key', cause: {code: 'private text'}})).includes('private text'));
 });
+
+test('upstream 504 remains distinguishable from local interruption and generic failure', () => {
+  const result = classifyAiFailure({name: 'ApiError', status: 504});
+  assert.equal(result.status, 504);
+  assert.equal(result.code, 'AI_UPSTREAM_TIMEOUT');
+  assert.equal(aiFailureDiagnostics({name: 'ApiError', status: 504}).upstreamStatus, 504);
+});

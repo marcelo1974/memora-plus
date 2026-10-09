@@ -1,5 +1,6 @@
 export function classifyAiFailure(error: unknown) {
   const item = error as { name?: string; status?: number; code?: unknown; cause?: { name?: string } } | null;
+  if (item?.status === 504) return { status: 504, code: 'AI_UPSTREAM_TIMEOUT', error: 'O serviço externo da IA excedeu o prazo de resposta. Nenhum resultado desta chamada foi salvo. Aguarde antes de uma nova tentativa.' };
   if (aiFailureDiagnostics(error).category === 'NETWORK') return { status: 502, code: 'AI_NETWORK', error: 'O servidor não conseguiu concluir a conexão com a IA. Consulte o diagnóstico de rede nos logs.' };
   if (item?.name === 'AbortError' || item?.name === 'TimeoutError' || item?.cause?.name === 'AbortError') return { status: 504, code: 'AI_INTERRUPTED', error: 'A chamada à IA foi interrompida ou excedeu o prazo. Aguarde um momento e tente um trecho menor.' };
   if (item?.status === 429) return { status: 429, code: 'AI_QUOTA', error: 'O serviço de IA atingiu o limite de uso. Aguarde antes de tentar novamente.' };
