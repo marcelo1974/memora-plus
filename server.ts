@@ -1,4 +1,4 @@
-import { classifyAiFailure } from "./server/aiFailure";
+import { classifyAiFailure, aiFailureDiagnostics } from "./server/aiFailure";
 import { validateStudyQuestions, validateStudySummary } from "./server/studyOutput";
 import express from "express";
 import path from "path";
@@ -118,7 +118,7 @@ Para cada questão:
     return res.json({ success: true, questions });
   } catch (err: unknown) {
     const failure = classifyAiFailure(err);
-    console.error("MEMORA_AI_FAILURE", { route: "generate-questions", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status });
+    console.error("MEMORA_AI_FAILURE", { route: "generate-questions", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status, ...aiFailureDiagnostics(err) });
     return res.status(failure.status).json({ error: failure.error, code: failure.code });
   } finally {
     res.locals.releaseAiSlot?.();
@@ -185,7 +185,7 @@ ${text.slice(0, 8000)}
     return res.json({ success: true, questions });
   } catch (err: unknown) {
     const failure = classifyAiFailure(err);
-    console.error("MEMORA_AI_FAILURE", { route: "text-to-questions", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status });
+    console.error("MEMORA_AI_FAILURE", { route: "text-to-questions", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status, ...aiFailureDiagnostics(err) });
     return res.status(failure.status).json({ error: failure.error, code: failure.code });
   } finally {
     res.locals.releaseAiSlot?.();
@@ -215,7 +215,7 @@ app.post("/api/ai/summarize-text", async (req, res) => {
     return res.json({ success: true, summary });
   } catch (err: unknown) {
     const failure = classifyAiFailure(err);
-    console.error("MEMORA_AI_FAILURE", { route: "summarize-text", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status });
+    console.error("MEMORA_AI_FAILURE", { route: "summarize-text", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status, ...aiFailureDiagnostics(err) });
     return res.status(failure.status).json({ error: failure.error, code: failure.code });
   } finally { res.locals.releaseAiSlot?.(); }
 });
