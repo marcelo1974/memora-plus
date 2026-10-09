@@ -1,3 +1,4 @@
+import { classifyAiFailure } from "./server/aiFailure";
 import { validateStudyQuestions, validateStudySummary } from "./server/studyOutput";
 import express from "express";
 import path from "path";
@@ -30,7 +31,7 @@ function getGeminiClient(): GoogleGenAI | null {
     geminiClient = new GoogleGenAI({
       apiKey,
       httpOptions: {
-        timeout: 30000,
+        timeout: 60000,
         headers: {
           "User-Agent": "aistudio-build",
         },
@@ -51,6 +52,7 @@ app.get("/api/health", (_req, res) => {
 
 // AI Generate Questions endpoint
 app.post("/api/ai/generate-questions", async (req, res) => {
+  const startedAt = Date.now();
   try {
     const { subject, topic, count = 5, difficulty = "Médio" } = req.body;
 
@@ -114,11 +116,10 @@ Para cada questão:
     const text = response.text?.trim() || "[]";
     const questions = validateStudyQuestions(JSON.parse(text), count);
     return res.json({ success: true, questions });
-  } catch (err: any) {
-    console.error("Erro ao gerar questões com Gemini:", err);
-    return res.status(500).json({
-      error: "Falha ao gerar questões com Inteligência Artificial.",
-    });
+  } catch (err: unknown) {
+    const failure = classifyAiFailure(err);
+    console.error("MEMORA_AI_FAILURE", { route: "generate-questions", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status });
+    return res.status(failure.status).json({ error: failure.error, code: failure.code });
   } finally {
     res.locals.releaseAiSlot?.();
   }
@@ -126,6 +127,7 @@ Para cada questão:
 
 // AI Text to Questions endpoint
 app.post("/api/ai/text-to-questions", async (req, res) => {
+  const startedAt = Date.now();
   try {
     const { text, count = 3, subject = "Geral", topic = "Material de Estudo" } = req.body;
     if (!text || typeof text !== "string" || text.trim().length < 20) {
@@ -181,11 +183,10 @@ ${text.slice(0, 8000)}
     const resText = response.text?.trim() || "[]";
     const questions = validateStudyQuestions(JSON.parse(resText), count);
     return res.json({ success: true, questions });
-  } catch (err: any) {
-    console.error("Erro no text-to-questions:", err);
-    return res.status(500).json({
-      error: "Falha na conversão de texto em questões.",
-    });
+  } catch (err: unknown) {
+    const failure = classifyAiFailure(err);
+    console.error("MEMORA_AI_FAILURE", { route: "text-to-questions", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status });
+    return res.status(failure.status).json({ error: failure.error, code: failure.code });
   } finally {
     res.locals.releaseAiSlot?.();
   }
@@ -193,6 +194,7 @@ ${text.slice(0, 8000)}
 
 // Summaries use the same login, input limits and shared generation budget.
 app.post("/api/ai/summarize-text", async (req, res) => {
+  const startedAt = Date.now();
   try {
     const ai = getGeminiClient();
     if (!ai) return res.status(503).json({ error: "GEMINI_API_KEY não configurada no servidor." });
@@ -211,8 +213,10 @@ app.post("/api/ai/summarize-text", async (req, res) => {
     });
     const summary = validateStudySummary(JSON.parse(response.text?.trim() || "{}"), text);
     return res.json({ success: true, summary });
-  } catch {
-    return res.status(500).json({ error: "Não foi possível gerar um resumo válido. Tente novamente." });
+  } catch (err: unknown) {
+    const failure = classifyAiFailure(err);
+    console.error("MEMORA_AI_FAILURE", { route: "summarize-text", code: failure.code, elapsedMs: Date.now() - startedAt, status: failure.status });
+    return res.status(failure.status).json({ error: failure.error, code: failure.code });
   } finally { res.locals.releaseAiSlot?.(); }
 });
 
